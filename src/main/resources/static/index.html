@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Object Detection Proxy</title>
+  <style>
+    body {
+      max-width: 720px;
+      margin: 40px auto;
+      padding: 0 20px;
+      font-family: Arial, sans-serif;
+      line-height: 1.5;
+    }
+
+    form {
+      display: grid;
+      gap: 12px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      font-weight: 700;
+    }
+
+    input,
+    select,
+    button {
+      padding: 10px;
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    #result {
+      margin-top: 24px;
+      white-space: pre-wrap;
+    }
+
+    #result img {
+      display: block;
+      max-width: 100%;
+      margin-top: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Object Detection Proxy</h1>
+
+  <form id="detectForm">
+    <label>
+      Message
+      <input name="message" value="detect objects" required>
+    </label>
+
+    <label>
+      Response Type
+      <select name="responseType">
+        <option value="json">json</option>
+        <option value="image">image</option>
+      </select>
+    </label>
+
+    <label>
+      File
+      <input name="file" type="file" accept="image/*" required>
+    </label>
+
+    <button type="submit">Send</button>
+  </form>
+
+  <div id="result"></div>
+
+  <script>
+    const SERVER_URL = "/api/detect/proxy";
+    const form = document.querySelector("#detectForm");
+    const resultDiv = document.querySelector("#result");
+
+    form.addEventListener("submit", event => {
+      event.preventDefault();
+      resultDiv.textContent = "Loading...";
+
+      const formData = new FormData(form);
+
+      fetch(SERVER_URL, {
+        method: "POST",
+        body: formData
+      })
+        .then(response => {
+          if (!response.ok) throw new Error("Server response error: " + response.status);
+          return response.json();
+        })
+        .then(data => {
+          resultDiv.innerHTML = data.message ? `${data.message}` : "";
+
+          if (data.image) {
+            const img = document.createElement("img");
+            img.src = "data:image/jpg;base64," + data.image;
+            resultDiv.appendChild(img);
+          }
+
+          if (data.image_url) {
+            const img = document.createElement("img");
+            img.src = data.image_url;
+            console.log(data.image_url);
+            resultDiv.appendChild(img);
+          }
+        })
+        .catch(error => {
+          resultDiv.textContent = error.message;
+        });
+    });
+  </script>
+</body>
+</html>

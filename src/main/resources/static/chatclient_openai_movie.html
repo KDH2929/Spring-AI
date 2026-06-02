@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChatClient OpenAI Movie SSE</title>
+  <style>
+    body {
+      max-width: 760px;
+      margin: 32px auto;
+      padding: 0 20px;
+      font-family: Arial, sans-serif;
+      line-height: 1.5;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 80px;
+      padding: 10px;
+      font: inherit;
+    }
+
+    button {
+      margin-top: 10px;
+      padding: 10px 14px;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    #result {
+      margin-top: 20px;
+      min-height: 220px;
+      padding: 14px;
+      border: 1px solid #ccc;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <h1>ChatClient OpenAI Movie SSE</h1>
+
+  <textarea id="q">30&#45824; &#45224;&#51088;, &#51064;&#53552;&#49828;&#53588;&#46972;</textarea>
+  <br>
+  <button id="startBtn">&#49828;&#53944;&#47532;&#48141; &#49884;&#51089;</button>
+
+  <div id="result"></div>
+
+  <script>
+    let es = null;
+
+    document.getElementById("startBtn").onclick = () => {
+      if (es) es.close();
+
+      const q = document.getElementById("q").value.trim();
+      const url = "/api/chatclient/openai/movie/stream?q=" + encodeURIComponent(q);
+
+      document.getElementById("result").textContent = "";
+
+      es = new EventSource(url);
+
+      es.onmessage = (e) => {
+        if (e.data === "[[END]]") {
+          es.close();
+          return;
+        }
+        const box = document.getElementById("result");
+        box.textContent += e.data;
+      };
+    };
+  </script>
+</body>
+</html>

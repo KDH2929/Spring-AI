@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChatClient Ollama Memory Test</title>
+  <style>
+    body {
+      max-width: 760px;
+      margin: 32px auto;
+      padding: 0 20px;
+      font-family: Arial, sans-serif;
+      line-height: 1.5;
+    }
+
+    form {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      font-weight: 700;
+    }
+
+    input,
+    textarea,
+    button {
+      padding: 10px;
+      font: inherit;
+    }
+
+    textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    #messages {
+      display: grid;
+      gap: 10px;
+    }
+
+    .message {
+      padding: 12px;
+      border: 1px solid #d0d3d7;
+      white-space: pre-wrap;
+    }
+
+    .user {
+      background: #f3f6fb;
+    }
+
+    .assistant {
+      background: #fafafa;
+    }
+  </style>
+</head>
+<body>
+  <h1>ChatClient Ollama Memory Test</h1>
+
+  <form id="chatForm">
+    <label>
+      Conversation ID
+      <input id="conversationId" value="ollama-user-1" required>
+    </label>
+
+    <label>
+      Message
+      <textarea id="message" required>내 이름은 민수야. 기억해줘.</textarea>
+    </label>
+
+    <button type="submit">Send</button>
+  </form>
+
+  <div id="messages"></div>
+
+  <script>
+    const form = document.getElementById("chatForm");
+    const conversationId = document.getElementById("conversationId");
+    const message = document.getElementById("message");
+    const messages = document.getElementById("messages");
+
+    function appendMessage(role, text) {
+      const item = document.createElement("div");
+      item.className = `message ${role}`;
+      item.textContent = `${role}: ${text}`;
+      messages.appendChild(item);
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const id = conversationId.value.trim();
+      const q = message.value.trim();
+      if (!id || !q) return;
+
+      appendMessage("user", q);
+      message.value = "";
+
+      try {
+        const url = `/api/chatclient/ollama/chat/memory?id=${encodeURIComponent(id)}&q=${encodeURIComponent(q)}`;
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const text = await response.text();
+        appendMessage("assistant", text);
+      } catch (error) {
+        appendMessage("assistant", `Error: ${error.message}`);
+      }
+    });
+  </script>
+</body>
+</html>

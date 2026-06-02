@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChatClient Ollama Test</title>
+  <style>
+    :root {
+      font-family: Arial, sans-serif;
+      color: #20242a;
+      background: #f5f7f8;
+    }
+
+    body {
+      max-width: 820px;
+      margin: 32px auto;
+      padding: 0 20px;
+      line-height: 1.5;
+    }
+
+    .shell {
+      display: grid;
+      gap: 14px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.2;
+    }
+
+    form {
+      display: grid;
+      gap: 10px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      font-weight: 700;
+    }
+
+    textarea,
+    button {
+      box-sizing: border-box;
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid #cbd2d9;
+      font: inherit;
+    }
+
+    textarea {
+      min-height: 110px;
+      resize: vertical;
+      background: #fff;
+    }
+
+    button {
+      width: auto;
+      min-width: 100px;
+      background: #243447;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      cursor: wait;
+      opacity: 0.65;
+    }
+
+    #messages {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 360px;
+      max-height: 520px;
+      padding: 14px;
+      overflow-y: auto;
+      border: 1px solid #d5dbe0;
+      background: #fff;
+    }
+
+    .message {
+      max-width: 82%;
+      padding: 10px 12px;
+      border: 1px solid #d5dbe0;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .user {
+      align-self: flex-end;
+      background: #e8f3ff;
+    }
+
+    .assistant {
+      align-self: flex-start;
+      background: #f7f7f2;
+    }
+
+    .error {
+      align-self: flex-start;
+      background: #fff1f0;
+      border-color: #ffccc7;
+    }
+
+    @media (max-width: 560px) {
+      body {
+        margin: 20px auto;
+      }
+
+      button {
+        width: 100%;
+      }
+
+      .message {
+        max-width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <h1>ChatClient Ollama Test</h1>
+
+    <div id="messages"></div>
+
+    <form id="chatForm">
+      <label for="message">
+        Message
+        <textarea id="message" required>Ollama가 정상적으로 연결됐는지 짧게 한국어로 답해줘.</textarea>
+      </label>
+      <button id="sendBtn" type="submit">Send</button>
+    </form>
+  </main>
+
+  <script>
+    const form = document.getElementById("chatForm");
+    const messageInput = document.getElementById("message");
+    const messages = document.getElementById("messages");
+    const sendBtn = document.getElementById("sendBtn");
+
+    function appendMessage(role, text) {
+      const item = document.createElement("div");
+      item.className = `message ${role}`;
+      item.textContent = text;
+      messages.appendChild(item);
+      messages.scrollTop = messages.scrollHeight;
+      return item;
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const message = messageInput.value.trim();
+      if (!message) return;
+
+      appendMessage("user", message);
+      messageInput.value = "";
+      sendBtn.disabled = true;
+
+      try {
+        const response = await fetch("/api/chatclient/ollama/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ message })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        appendMessage("assistant", data.content || "");
+      } catch (error) {
+        appendMessage("error", `Error: ${error.message}`);
+      } finally {
+        sendBtn.disabled = false;
+        messageInput.focus();
+      }
+    });
+  </script>
+</body>
+</html>
