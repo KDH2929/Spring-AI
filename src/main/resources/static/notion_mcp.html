@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Notion MCP Test</title>
+  <style>
+    :root {
+      font-family: Arial, sans-serif;
+      color: #20242a;
+      background: #f5f7f8;
+    }
+
+    body {
+      max-width: 860px;
+      margin: 32px auto;
+      padding: 0 20px;
+      line-height: 1.5;
+    }
+
+    .shell {
+      display: grid;
+      gap: 14px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.2;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    form {
+      display: grid;
+      gap: 10px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      font-weight: 700;
+    }
+
+    textarea,
+    button {
+      box-sizing: border-box;
+      padding: 11px 12px;
+      border: 1px solid #cbd2d9;
+      font: inherit;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      resize: vertical;
+      background: #fff;
+    }
+
+    button {
+      width: auto;
+      min-width: 96px;
+      background: #243447;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    button.secondary {
+      background: #fff;
+      color: #243447;
+    }
+
+    button:disabled {
+      cursor: wait;
+      opacity: 0.65;
+    }
+
+    #messages {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 360px;
+      max-height: 540px;
+      padding: 14px;
+      overflow-y: auto;
+      border: 1px solid #d5dbe0;
+      background: #fff;
+    }
+
+    .message {
+      max-width: 86%;
+      padding: 10px 12px;
+      border: 1px solid #d5dbe0;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .user {
+      align-self: flex-end;
+      background: #e8f3ff;
+    }
+
+    .assistant {
+      align-self: flex-start;
+      background: #f7f7f2;
+    }
+
+    .error {
+      align-self: flex-start;
+      background: #fff1f0;
+      border-color: #ffccc7;
+    }
+
+    @media (max-width: 560px) {
+      body {
+        margin: 20px auto;
+      }
+
+      button {
+        width: 100%;
+      }
+
+      .toolbar {
+        display: grid;
+      }
+
+      .message {
+        max-width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <h1>Notion MCP Test</h1>
+
+    <div id="messages"></div>
+
+    <form id="chatForm">
+      <label for="message">
+        Message
+        <textarea id="message" required>Notion에서 접근 가능한 페이지나 데이터베이스 목록을 확인해줘.</textarea>
+      </label>
+
+      <div class="toolbar">
+        <button id="sendBtn" type="submit">Send</button>
+        <button id="clearBtn" class="secondary" type="button">Clear</button>
+      </div>
+    </form>
+  </main>
+
+  <script>
+    const form = document.getElementById("chatForm");
+    const messageInput = document.getElementById("message");
+    const messages = document.getElementById("messages");
+    const sendBtn = document.getElementById("sendBtn");
+    const clearBtn = document.getElementById("clearBtn");
+
+    function appendMessage(role, text) {
+      const item = document.createElement("div");
+      item.className = `message ${role}`;
+      item.textContent = text;
+      messages.appendChild(item);
+      messages.scrollTop = messages.scrollHeight;
+      return item;
+    }
+
+    clearBtn.addEventListener("click", () => {
+      messages.replaceChildren();
+      messageInput.focus();
+    });
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const message = messageInput.value.trim();
+      if (!message) return;
+
+      appendMessage("user", message);
+      messageInput.value = "";
+      sendBtn.disabled = true;
+
+      try {
+        const response = await fetch("/api/chatclient/openai/notion/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ message })
+        });
+
+        const text = await response.text();
+        if (!response.ok) {
+          throw new Error(text || `HTTP ${response.status}`);
+        }
+
+        const data = JSON.parse(text);
+        appendMessage("assistant", data.content || "");
+      } catch (error) {
+        appendMessage("error", `Error: ${error.message}`);
+      } finally {
+        sendBtn.disabled = false;
+        messageInput.focus();
+      }
+    });
+  </script>
+</body>
+</html>

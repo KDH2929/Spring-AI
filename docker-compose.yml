@@ -1,5 +1,18 @@
 
 services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: demo-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pgvector-data-pg16:/var/lib/postgresql/data
+    restart: unless-stopped
+
   ollama:
     image: ollama/ollama:latest
     container_name: ollama
@@ -13,4 +26,6 @@ services:
   
 
 volumes:
+  pgvector-data-pg16:
+    external: true
   ollama:

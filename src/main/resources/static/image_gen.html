@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Image Generator</title>
+  <style>
+    :root {
+      font-family: Arial, sans-serif;
+      color: #20242a;
+      background: #f4f6f8;
+    }
+
+    body {
+      max-width: 920px;
+      margin: 32px auto;
+      padding: 0 20px;
+      line-height: 1.5;
+    }
+
+    h1 {
+      margin: 0 0 16px;
+      font-size: 28px;
+      line-height: 1.2;
+    }
+
+    form {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      font-weight: 700;
+    }
+
+    textarea,
+    select,
+    button,
+    a.button {
+      box-sizing: border-box;
+      padding: 11px 12px;
+      border: 1px solid #cbd2d9;
+      font: inherit;
+    }
+
+    textarea {
+      min-height: 120px;
+      resize: vertical;
+      background: #fff;
+    }
+
+    select {
+      background: #fff;
+    }
+
+    button,
+    a.button {
+      width: fit-content;
+      min-width: 120px;
+      background: #243447;
+      color: #fff;
+      text-align: center;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      cursor: wait;
+      opacity: 0.65;
+    }
+
+    .options {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    #status {
+      color: #4e5965;
+    }
+
+    #error {
+      color: #b42318;
+      white-space: pre-wrap;
+    }
+
+    #preview {
+      display: grid;
+      min-height: 360px;
+      place-items: center;
+      padding: 16px;
+      border: 1px solid #d5dbe0;
+      background: #fff;
+    }
+
+    #placeholder {
+      color: #6b7280;
+      text-align: center;
+    }
+
+    #result {
+      display: none;
+      max-width: 100%;
+      height: auto;
+    }
+
+    @media (max-width: 640px) {
+      body {
+        margin: 20px auto;
+      }
+
+      .options {
+        grid-template-columns: 1fr;
+      }
+
+      button,
+      a.button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Image Generator</h1>
+
+  <form id="imageForm">
+    <label for="prompt">
+      Prompt
+      <textarea id="prompt" required>Make a clean product-style image of a small robot drawing a picture at a desk.</textarea>
+    </label>
+
+    <div class="options">
+      <label for="preset">
+        Size
+        <select id="preset">
+          <option value="1024x1024">1024 x 1024</option>
+          <option value="1024x1536">1024 x 1536</option>
+          <option value="1536x1024">1536 x 1024</option>
+        </select>
+      </label>
+
+      <label for="quality">
+        Quality
+        <select id="quality">
+          <option value="auto">auto</option>
+          <option value="low">low</option>
+          <option value="medium">medium</option>
+          <option value="high">high</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="actions">
+      <button id="generate" type="submit">Generate</button>
+      <a id="download" class="button" href="#" download="generated-image.png" hidden>Download</a>
+      <span id="status"></span>
+    </div>
+  </form>
+
+  <div id="error"></div>
+
+  <div id="preview">
+    <div id="placeholder">Generated image will appear here.</div>
+    <img id="result" alt="Generated image">
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const form = $("imageForm");
+    const generateButton = $("generate");
+    const downloadLink = $("download");
+    const resultImage = $("result");
+    const placeholder = $("placeholder");
+
+    function sizeFromPreset() {
+      const [width, height] = $("preset").value.split("x").map(Number);
+      return { width, height };
+    }
+
+    function setLoading(loading) {
+      generateButton.disabled = loading;
+      $("status").textContent = loading ? "Generating image..." : "";
+    }
+
+    function showImage(base64) {
+      const src = "data:image/png;base64," + base64;
+      resultImage.src = src;
+      resultImage.style.display = "block";
+      placeholder.hidden = true;
+      downloadLink.href = src;
+      downloadLink.hidden = false;
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      $("error").textContent = "";
+      resultImage.removeAttribute("src");
+      resultImage.style.display = "none";
+      placeholder.hidden = false;
+      downloadLink.hidden = true;
+
+      const prompt = $("prompt").value.trim();
+      if (!prompt) {
+        $("error").textContent = "Please enter a prompt.";
+        return;
+      }
+
+      const { width, height } = sizeFromPreset();
+      setLoading(true);
+
+      try {
+        const response = await fetch("/api/images/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt,
+            width,
+            height,
+            quality: $("quality").value
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(await response.text());
+        }
+
+        const data = await response.json();
+        if (!data.b64Json) {
+          throw new Error("Image data was not returned.");
+        }
+
+        showImage(data.b64Json);
+      } catch (error) {
+        $("error").textContent = error.message;
+      } finally {
+        setLoading(false);
+      }
+    });
+  </script>
+</body>
+</html>
